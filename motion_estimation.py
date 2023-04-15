@@ -73,19 +73,19 @@ def pad_zeros_around_image(image: np.ndarray, pad_size: int or Tuple[int, int]) 
     
     return new_image.astype(np.uint8)
 
-def calculate_sad_with_surrounding_blocks(frame: np.ndarray, block: np.ndarray, start: Tuple[int, int], end = None, stride = 1) -> ArrayLike:
+def calculate_sad_with_surrounding_blocks(ref_frame: np.ndarray, block: np.ndarray, start: Tuple[int, int], end = None, stride = 1) -> ArrayLike:
     '''
     This function calculates the Sum of Absolute Differences (SAD) between a block and the surrounding blocks within a frame. 
     It then returns the position of the surrounding block with the minimum SAD.
 
     Args:
-    - frame: a numpy array representing the current frame.
+    - ref_frame: a numpy array representing the reference frame.
     - block: a numpy array representing the block for which SAD will be calculated.
     - start: a tuple representing the starting position of the block.
     - end: a tuple representing the ending position of the block (default is None).
     - stride: an integer representing the stride (default is 1).
     Returns:
-    - A tuple containing the position of the center of the previous block in the current frame and the position of the center of the block in the next frame.
+    - A tuple containing the position of the center of the block in the reference frame and the position of the center of the block in the current frame.
     '''
     assert len(start) == 2 
     block_height, block_width = block.shape
@@ -99,7 +99,7 @@ def calculate_sad_with_surrounding_blocks(frame: np.ndarray, block: np.ndarray, 
     
     pad_size_height, pad_size_width = pad_size = block_height//2, block_width//2
     
-    padded_img = pad_zeros_around_image(frame, pad_size)
+    padded_img = pad_zeros_around_image(ref_frame, pad_size)
     
     for i in range(start_height + pad_size_height, end_height + pad_size_width, stride):
         for j in range(start_width + pad_size_width, end_width + pad_size_width, stride):
@@ -116,16 +116,16 @@ def calculate_sad_with_surrounding_blocks(frame: np.ndarray, block: np.ndarray, 
         min_sad == sad
     )
     
-    center_block_in_next_frame = start_height + block_height//2, start_width + block_width//2
-    center_prev_block_in_current_frame = start_height + idx_sad[0][0], start_width + idx_sad[1][0]
-    return center_prev_block_in_current_frame, center_block_in_next_frame
+    center_block_in_current_frame = start_height + block_height//2, start_width + block_width//2
+    center_block_in_reference_frame = start_height + idx_sad[0][0], start_width + idx_sad[1][0]
+    return center_block_in_reference_frame, center_block_in_current_frame
 
-def sliding_window_blocks(frame: np.ndarray, blocks: np.ndarray) -> ArrayLike:
+def sliding_window_blocks(ref_frame: np.ndarray, blocks: np.ndarray) -> ArrayLike:
     '''
-    Slides a window of blocks across the given frame and calculates the motion vectors for each block.
+    Slides a window of blocks across the given reference frame and calculates the motion vectors for each block.
 
     Args:
-        - frame: a 2D numpy array representing the frame to analyze.
+        - ref_frame: a 2D numpy array representing the reference frame to analyze.
         - blocks: a 4D numpy array representing the blocks to use for motion estimation.
               The shape of the array is (n_blocks_height, n_blocks_width, block_height, block_width).
 
@@ -139,14 +139,14 @@ def sliding_window_blocks(frame: np.ndarray, blocks: np.ndarray) -> ArrayLike:
     
     for i in range(n_blocks_height):
         for j in range(n_blocks_width):
-            center_prev_block_in_current_frame, center_block_in_next_frame = calculate_sad_with_surrounding_blocks(
-                frame, blocks[i,j], start = (i * block_height ,j * block_width)
+            center_block_in_reference_frame, center_block_in_current_frame = calculate_sad_with_surrounding_blocks(
+                ref_frame, blocks[i,j], start = (i * block_height ,j * block_width)
             )
 
             vector = {
                 # 'coordinates_block': (i,j),
-                'start_point': center_prev_block_in_current_frame,
-                'end_point': center_block_in_next_frame
+                'start_point': center_block_in_reference_frame,
+                'end_point': center_block_in_current_frame
             }
             
             motion_vectors.append(vector)
