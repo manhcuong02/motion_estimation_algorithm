@@ -178,8 +178,8 @@ def main(video_filename):
                 continue
             
             blocks = split_image_into_blocks(frame, block_size)
-            vector = sliding_window_blocks(pre_frame, blocks)
-            motion_vectors_map = visualize_motion_vectors(pre_frame, vector)
+            motion_vectors = sliding_window_blocks(pre_frame, blocks)
+            motion_vectors_map = visualize_motion_vectors(pre_frame, motion_vectors)
             cv.imshow('motion vectors', motion_vectors_map)     
             
             if cv.waitKey(1) & 0xFF == ord('q'):
